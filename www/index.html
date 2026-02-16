@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AVELI-Style Portfolio Shop</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <section
+      id="landingScreen"
+      class="landing-screen"
+      data-media-type="video"
+      data-media-src="media/landing.mp4"
+      aria-label="Landing"
+    >
+      <video id="landingVideo" class="landing-media" muted autoplay loop playsinline hidden></video>
+      <img id="landingGif" class="landing-media" alt="" hidden />
+      <div class="landing-overlay"></div>
+      <button id="enterBtn" class="enter-btn" type="button">Enter</button>
+    </section>
+    <audio id="experienceAudio" loop></audio>
+    <img id="siteBgGif" class="site-bg-gif" alt="" hidden />
+
+    <div class="page">
+      <header class="top">
+        <div class="top-left">
+          <nav class="primary-nav" aria-label="Main">
+            <a href="#home">Home</a>
+            <a href="#portfolio">Portfolio</a>
+            <a href="#live">Live</a>
+            <a href="#archive">Archive</a>
+          </nav>
+          <a class="email" href="mailto:ajimenezh29@yahoo.com">ajimenezh29@yahoo.com</a>
+        </div>
+
+        <div class="top-right">
+          <button id="adminLoginBtn" class="menu-btn" type="button">
+            ADMIN
+          </button>
+          <button id="adminLogoutBtn" class="menu-btn" type="button" hidden>
+            LOGOUT
+          </button>
+          <button id="uploadToggleBtn" class="menu-btn" type="button" hidden>
+            UPLOAD
+          </button>
+          <button id="menuBtn" class="menu-btn" type="button" aria-expanded="false" aria-controls="mobileNav">
+            MENU
+          </button>
+          <a id="bagBtn" class="bag" href="#">BAG (0)</a>
+        </div>
+      </header>
+
+      <section id="uploadPage" class="upload-panel page-view" aria-label="Upload page" hidden>
+        <h2 id="uploadPanelTitle">Add New Work</h2>
+        <form id="uploadForm" class="upload-form">
+          <label>
+            Project title
+            <input id="titleInput" name="title" type="text" maxlength="80" required />
+          </label>
+          <label>
+            Description
+            <textarea id="descriptionInput" name="description" rows="3" maxlength="220" required></textarea>
+          </label>
+          <label>
+            Full details
+            <textarea id="detailsInput" name="details" rows="4" maxlength="1800" required></textarea>
+          </label>
+          <label>
+            Year
+            <input id="yearInput" name="year" type="number" min="2024" max="2100" value="2026" required />
+          </label>
+          <label>
+            Price (USD)
+            <input id="priceInput" name="price" type="number" min="0" step="0.01" placeholder="49.99" required />
+          </label>
+          <label>
+            Checkout URL (optional)
+            <input id="buyUrlInput" name="buyUrl" type="url" placeholder="https://checkout.example.com/item" />
+          </label>
+          <label>
+            Status
+            <select id="statusInput" name="status" required>
+              <option value="live">Live</option>
+              <option value="archive">Archive</option>
+            </select>
+          </label>
+          <div class="avx-section">
+            <p class="meta">AVX ID Generator</p>
+            <label>
+              Color (AAA)
+              <select id="avxColorInput" name="avxColor" required>
+                <option value="blk">blk</option>
+                <option value="wht">wht</option>
+                <option value="grn">grn</option>
+                <option value="gry">gry</option>
+                <option value="pnk">pnk</option>
+              </select>
+            </label>
+            <label>
+              Item (BB)
+              <select id="avxItemInput" name="avxItem" required>
+                <option value="ts">ts</option>
+                <option value="hd">hd</option>
+                <option value="sw">sw</option>
+                <option value="sp">sp</option>
+                <option value="trkp">trkp</option>
+              </select>
+            </label>
+            <label>
+              Size (S-XL)
+              <select id="avxSizeInput" name="avxSize" required>
+                <option value="S">S</option>
+                <option value="M">M</option>
+                <option value="L">L</option>
+                <option value="XL">XL</option>
+              </select>
+            </label>
+            <label>
+              Season (CC)
+              <select id="avxSeasonInput" name="avxSeason" required>
+                <option value="fw">fw</option>
+                <option value="ss">ss</option>
+              </select>
+            </label>
+            <label>
+              Year (00)
+              <input id="avxYearInput" name="avxYear" type="number" min="0" max="99" value="26" required />
+            </label>
+            <label>
+              AVX ID
+              <input id="avxIdInput" name="avxId" type="text" readonly />
+            </label>
+          </div>
+          <div id="archiveMetaFields" class="archive-meta-fields" hidden>
+            <label>
+              Archive Season
+              <select id="archiveSeasonInput" name="archiveSeason">
+                <option value="FW">FW</option>
+                <option value="SS">SS</option>
+              </select>
+            </label>
+            <label>
+              Archive Year
+              <input id="archiveYearInput" name="archiveYear" type="number" min="2000" max="2100" value="2026" />
+            </label>
+          </div>
+          <div class="variant-section">
+            <p class="meta">Variations (size + quantity)</p>
+            <div id="variantRows" class="variant-rows"></div>
+            <button id="addVariantBtn" type="button" class="menu-btn">+ Add Size</button>
+          </div>
+          <label>
+            Media (image or video, multiple allowed)
+            <input id="mediaInput" name="media" type="file" accept="image/*,video/*" multiple required />
+          </label>
+          <div class="upload-actions">
+            <button id="uploadSubmitBtn" type="submit">Publish</button>
+            <button id="uploadCancelEditBtn" type="button" class="menu-btn" hidden>Cancel Edit</button>
+          </div>
+          <p id="uploadStatus" class="meta"></p>
+        </form>
+        <hr />
+        <h2>Experience Dashboard</h2>
+        <form id="experienceForm" class="upload-form">
+          <label>
+            Landing GIF
+            <input id="landingGifInput" type="file" accept="image/gif" />
+          </label>
+          <label>
+            Banner Images (multiple)
+            <input id="bannerGifInput" type="file" accept="image/*" multiple />
+          </label>
+          <label>
+            Experience MP3
+            <input id="experienceMp3Input" type="file" accept="audio/mpeg,.mp3" />
+          </label>
+          <button id="experienceSaveBtn" type="submit">Save Experience Media</button>
+          <p id="experienceStatus" class="meta"></p>
+        </form>
+        <hr />
+        <h2 id="portfolioPanelTitle">Portfolio Upload</h2>
+        <form id="portfolioForm" class="upload-form">
+          <label>
+            Project title
+            <input id="portfolioTitleInput" type="text" maxlength="120" required />
+          </label>
+          <label>
+            Description
+            <textarea id="portfolioDescriptionInput" rows="3" maxlength="300" required></textarea>
+          </label>
+          <label>
+            Full details
+            <textarea id="portfolioDetailsInput" rows="5" maxlength="2400"></textarea>
+          </label>
+          <label>
+            Project media folder (drag/drop or choose folder)
+            <input
+              id="portfolioFolderInput"
+              type="file"
+              accept="image/*,video/*,audio/*"
+              webkitdirectory
+              directory
+              multiple
+              required
+            />
+          </label>
+          <div class="upload-actions">
+            <button id="portfolioSubmitBtn" type="submit">Publish Portfolio Project</button>
+            <button id="portfolioCancelEditBtn" type="button" class="menu-btn" hidden>Cancel Edit</button>
+          </div>
+          <p id="portfolioStatus" class="meta"></p>
+        </form>
+      </section>
+
+      <nav id="mobileNav" class="mobile-nav" aria-label="Mobile">
+        <a href="#home">Home</a>
+        <a href="#portfolio">Portfolio</a>
+        <a href="#live">Live</a>
+        <a href="#archive">Archive</a>
+      </nav>
+
+      <main>
+        <section id="homePage" class="page-view" aria-label="Home page">
+          <section class="hero-carousel" aria-label="Featured media banner">
+            <div class="hero-mask">
+              <div id="heroTrack" class="hero-track"></div>
+            </div>
+          </section>
+          <h1>Home</h1>
+          <p class="meta">Latest live products.</p>
+          <section id="homeProducts" class="product-grid" aria-label="Home Live Products"></section>
+        </section>
+
+        <section id="livePage" class="page-view" aria-label="Live page">
+          <h1>Live Products</h1>
+          <section id="products" class="product-grid" aria-label="Live Products"></section>
+        </section>
+
+        <section id="portfolioPage" class="page-view" aria-label="Portfolio page" hidden>
+          <h1>Portfolio</h1>
+          <section id="portfolioGrid" class="product-grid" aria-label="Portfolio Projects"></section>
+        </section>
+
+        <section id="archivePage" class="page-view" aria-label="Archive page" hidden>
+          <h1>Archive</h1>
+          <p class="meta">Pinch to zoom (trackpad or touch).</p>
+          <section id="archiveIndex" class="archive-index" aria-label="Archived products"></section>
+        </section>
+      </main>
+
+      <dialog id="adminDialog" class="admin-dialog">
+        <form id="adminForm" method="dialog" class="admin-form">
+          <h2>Admin Login</h2>
+          <label>
+            Passcode
+            <input id="adminPasscodeInput" type="password" autocomplete="current-password" required />
+          </label>
+          <div class="admin-actions">
+            <button type="submit">Enter</button>
+            <button id="adminCancelBtn" type="button" class="menu-btn">Cancel</button>
+          </div>
+          <p id="adminStatus" class="meta"></p>
+        </form>
+      </dialog>
+
+      <dialog id="detailDialog" class="detail-dialog">
+        <article class="detail-content">
+          <header class="detail-header">
+            <h2 id="detailTitle"></h2>
+            <button id="detailCloseBtn" type="button" class="menu-btn">Close</button>
+          </header>
+          <div id="detailViewer" class="detail-viewer">
+            <button id="detailPrevBtn" class="detail-nav" type="button" aria-label="Previous media">&lt;</button>
+            <div id="detailMediaFrame" class="detail-media-frame"></div>
+            <button id="detailNextBtn" class="detail-nav" type="button" aria-label="Next media">&gt;</button>
+          </div>
+          <div id="detailPortfolioMediaGrid" class="detail-portfolio-media-grid" hidden></div>
+          <p id="detailMeta" class="meta"></p>
+          <p id="detailDescription"></p>
+          <p id="detailFullText" class="detail-full"></p>
+          <div id="detailSizeRow" class="detail-size-row" hidden>
+            <label for="detailSizeSelect">Size</label>
+            <select id="detailSizeSelect"></select>
+            <p id="detailSizeHint" class="meta"></p>
+          </div>
+          <div class="detail-buy-row">
+            <p id="detailPrice" class="meta"></p>
+            <div class="detail-action-row">
+              <button id="detailEditBtn" type="button" class="menu-btn" hidden>Edit</button>
+              <button id="detailAddToCartBtn" type="button" class="menu-btn">Add to Cart</button>
+              <button id="detailBuyBtn" type="button" class="buy-btn">Buy</button>
+            </div>
+          </div>
+        </article>
+      </dialog>
+
+      <dialog id="cartDialog" class="cart-dialog">
+        <article class="cart-content">
+          <header class="detail-header">
+            <h2>Your Cart</h2>
+            <button id="cartCloseBtn" type="button" class="menu-btn">Close</button>
+          </header>
+          <div id="cartItems" class="cart-items"></div>
+          <p id="cartEmpty" class="meta">Your cart is empty.</p>
+          <p id="cartSubtotal" class="meta"></p>
+          <div class="cart-actions">
+            <button id="cartCheckoutBtn" type="button" class="buy-btn">Checkout</button>
+          </div>
+          <p id="cartStatus" class="meta"></p>
+        </article>
+      </dialog>
+
+      <footer>
+        <div id="about" class="footer-links">
+          <a href="#home">Home</a>
+          <a href="#portfolio">Portfolio</a>
+          <a href="#live">Live</a>
+          <a href="#archive">Archive</a>
+          <a href="https://www.instagram.com" target="_blank" rel="noreferrer">Instagram</a>
+        </div>
+        <a class="email" href="mailto:ajimenezh29@yahoo.com">ajimenezh29@yahoo.com</a>
+
+        <div class="legal-links">
+          <a href="#">Imprint</a>
+          <a href="#">Terms</a>
+          <a href="#">Privacy</a>
+        </div>
+
+        <p class="meta">Shopping from United States.</p>
+        <button class="currency" type="button">Change Currency</button>
+        <p class="meta">&copy; YOUR NAME, <span id="year"></span></p>
+      </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      window.SUPABASE_URL = window.SUPABASE_URL || "https://mybcoeniafeoahwczfxf.supabase.co";
+      window.SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "sb_publishable_bFw94x0Wxt-H8uS57pWgXw_I2AglrJH";
+    </script>
+    <script src="app.js"></script>
+  </body>
+</html>

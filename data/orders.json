@@ -1,0 +1,114 @@
+[
+  {
+    "id": "f1ad66f0-2389-4bbf-b9a4-d42ce7515796",
+    "productId": "ea0a6488-4a09-4e98-8492-33ac64d68308",
+    "quantity": 1,
+    "unitPrice": 49.99,
+    "totalPrice": 49.99,
+    "createdAt": "2026-02-15T08:46:10.542Z"
+  },
+  {
+    "id": "7e688327-cf67-4f8c-99a2-fae0b4fc8e99",
+    "productId": "ea0a6488-4a09-4e98-8492-33ac64d68308",
+    "quantity": 1,
+    "unitPrice": 49.99,
+    "totalPrice": 49.99,
+    "createdAt": "2026-02-15T08:45:32.932Z"
+  },
+  {
+    "id": "b2524fa7-c8a4-4dc1-a175-b7678d0dde19",
+    "productId": "ea0a6488-4a09-4e98-8492-33ac64d68308",
+    "quantity": 1,
+    "unitPrice": 49.99,
+    "totalPrice": 49.99,
+    "createdAt": "2026-02-15T08:44:54.751Z"
+  },
+  {
+    "id": "d755b84c-4bad-49df-a462-25f142b0a1d1",
+    "productId": "ea0a6488-4a09-4e98-8492-33ac64d68308",
+    "quantity": 1,
+    "unitPrice": 49.99,
+    "totalPrice": 49.99,
+    "createdAt": "2026-02-15T08:44:53.839Z"
+  },
+  {
+    "id": "81142edf-6194-4195-a9e7-ceda5c8890ab",
+    "productId": "ea0a6488-4a09-4e98-8492-33ac64d68308",
+    "quantity": 1,
+    "unitPrice": 49.99,
+    "totalPrice": 49.99,
+    "createdAt": "2026-02-15T08:44:52.753Z"
+  },
+  {
+    "id": "56ead9ad-f261-4d0c-8957-b202fd1e3cd8",
+    "productId": "ea0a6488-4a09-4e98-8492-33ac64d68308",
+    "quantity": 1,
+    "unitPrice": 49.99,
+    "totalPrice": 49.99,
+    "createdAt": "2026-02-15T08:44:52.490Z"
+  },
+  {
+    "id": "18c32a6e-3fa0-4c96-a0df-37264b11d34f",
+    "productId": "ea0a6488-4a09-4e98-8492-33ac64d68308",
+    "quantity": 1,
+    "unitPrice": 49.99,
+    "totalPrice": 49.99,
+    "createdAt": "2026-02-15T08:44:37.770Z"
+  },
+  {
+    "id": "8ac90378-aca4-4b4f-8a7c-b891c60197df",
+    "productId": "ea0a6488-4a09-4e98-8492-33ac64d68308",
+    "quantity": 1,
+    "unitPrice": 49.99,
+    "totalPrice": 49.99,
+    "createdAt": "2026-02-15T08:44:34.682Z"
+  },
+  {
+    "id": "98a8a6ac-81de-4262-8e8d-ee28010be5a1",
+    "productId": "ea0a6488-4a09-4e98-8492-33ac64d68308",
+    "quantity": 1,
+    "unitPrice": 49.99,
+    "totalPrice": 49.99,
+    "createdAt": "2026-02-15T08:44:33.656Z"
+  },
+  {
+    "id": "dbd85051-3abf-4d57-8870-9e239b33ae2a",
+    "productId": "ea0a6488-4a09-4e98-8492-33ac64d68308",
+    "quantity": 1,
+    "unitPrice": 49.99,
+    "totalPrice": 49.99,
+    "createdAt": "2026-02-15T08:25:56.509Z"
+  },
+  {
+    "id": "9cdd46d1-ce79-4605-81e5-e63c36268ff6",
+    "productId": "ea0a6488-4a09-4e98-8492-33ac64d68308",
+    "quantity": 1,
+    "unitPrice": 49.99,
+    "totalPrice": 49.99,
+    "createdAt": "2026-02-15T08:25:38.599Z"
+  },
+  {
+    "id": "c040f3ea-0bf2-4055-8ec2-9b8614a66f9c",
+    "productId": "ea0a6488-4a09-4e98-8492-33ac64d68308",
+    "quantity": 1,
+    "unitPrice": 49.99,
+    "totalPrice": 49.99,
+    "createdAt": "2026-02-15T08:25:26.512Z"
+  },
+  {
+    "id": "ea7f4dce-faf0-451d-bc20-780226ba5ae9",
+    "productId": "ea0a6488-4a09-4e98-8492-33ac64d68308",
+    "quantity": 1,
+    "unitPrice": 49.99,
+    "totalPrice": 49.99,
+    "createdAt": "2026-02-15T08:25:21.901Z"
+  },
+  {
+    "id": "dad8249a-5425-4c16-b149-a25f2f0f5fa4",
+    "productId": "ea0a6488-4a09-4e98-8492-33ac64d68308",
+    "quantity": 1,
+    "unitPrice": 49.99,
+    "totalPrice": 49.99,
+    "createdAt": "2026-02-15T08:25:20.247Z"
+  }
+]
