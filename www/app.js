@@ -2290,11 +2290,21 @@ function getBannerMediaSources() {
     : [];
   const normalizedDirect = direct
     .map((value) => String(value || "").trim())
-    .filter((value) => value.startsWith("data:image/"));
+    .filter((value) => (
+      value.startsWith("data:image/")
+      || value.startsWith("http://")
+      || value.startsWith("https://")
+      || value.startsWith("/")
+    ));
   if (normalizedDirect.length > 0) return normalizedDirect;
 
   const legacy = String(siteSettings?.bannerGifDataUrl || "").trim();
-  if (legacy.startsWith("data:image/")) return [legacy];
+  if (
+    legacy.startsWith("data:image/")
+    || legacy.startsWith("http://")
+    || legacy.startsWith("https://")
+    || legacy.startsWith("/")
+  ) return [legacy];
   return [];
 }
 
