@@ -334,9 +334,12 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/api/runtime-config.js"></script>
     <script>
-      window.SUPABASE_URL = window.SUPABASE_URL || "https://mybcoeniafeoahwczfxf.supabase.co";
-      window.SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "sb_publishable_bFw94x0Wxt-H8uS57pWgXw_I2AglrJH";
+      window.SUPABASE_URL = window.SUPABASE_URL || "";
+      window.SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "";
+      window.SUPABASE_ADMIN_EMAIL = window.SUPABASE_ADMIN_EMAIL || "";
+      window.SUPABASE_MEDIA_BUCKET = window.SUPABASE_MEDIA_BUCKET || "site-media";
     </script>
     <script src="app.js"></script>
   </body>

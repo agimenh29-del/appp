@@ -4,6 +4,8 @@ const CART_KEY = "portfolio_cart_v1";
 const API_BASE = resolveApiBase();
 const SUPABASE_URL = String(window.SUPABASE_URL || localStorage.getItem("supabase_url") || "").trim();
 const SUPABASE_ANON_KEY = String(window.SUPABASE_ANON_KEY || localStorage.getItem("supabase_anon_key") || "").trim();
+const SUPABASE_ADMIN_EMAIL = String(window.SUPABASE_ADMIN_EMAIL || localStorage.getItem("supabase_admin_email") || "").trim();
+const SUPABASE_MEDIA_BUCKET = String(window.SUPABASE_MEDIA_BUCKET || localStorage.getItem("supabase_media_bucket") || "site-media").trim();
 const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
 const supabaseClient = SUPABASE_ENABLED
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
@@ -220,7 +222,7 @@ if (adminForm) {
         body: JSON.stringify({ passcode }),
       });
 
-      sessionStorage.setItem(ADMIN_PASSCODE_KEY, passcode);
+      sessionStorage.setItem(ADMIN_PASSCODE_KEY, SUPABASE_ENABLED ? "supabase-auth" : passcode);
       isAdmin = true;
       localStorage.setItem(ADMIN_SESSION_KEY, "1");
       updateAdminUi();
@@ -232,7 +234,14 @@ if (adminForm) {
 }
 
 if (adminLogoutBtn) {
-  adminLogoutBtn.addEventListener("click", () => {
+  adminLogoutBtn.addEventListener("click", async () => {
+    if (SUPABASE_ENABLED) {
+      try {
+        await apiRequest("/api/admin/logout", { method: "POST" });
+      } catch {
+        // Keep local logout flow even if remote sign-out fails.
+      }
+    }
     isAdmin = false;
     sessionStorage.removeItem(ADMIN_PASSCODE_KEY);
     localStorage.removeItem(ADMIN_SESSION_KEY);
@@ -243,6 +252,7 @@ if (adminLogoutBtn) {
 
 function getAdminPasscode() {
   if (!isAdmin) return "";
+  if (SUPABASE_ENABLED) return "supabase-auth";
   return (sessionStorage.getItem(ADMIN_PASSCODE_KEY) || "").trim();
 }
 
@@ -295,18 +305,26 @@ if (experienceForm) {
     try {
       setExperienceStatus("Saving...");
       const payload = {};
+      const useStorageUpload = SUPABASE_ENABLED && Boolean(SUPABASE_MEDIA_BUCKET);
 
       if (gifFile) {
-        payload.landingGifDataUrl = await fileToDataUrl(gifFile);
-      }
-      if (bannerFiles.length > 0) {
-        payload.bannerMediaDataUrls = [];
-        for (const file of bannerFiles) {
-          payload.bannerMediaDataUrls.push(await fileToDataUrl(file));
+        if (useStorageUpload) {
+          payload.landingGifDataUrl = await uploadExperienceFileToStorage(gifFile, "landing");
+        } else {
+          payload.landingGifDataUrl = await fileToDataUrl(gifFile);
         }
       }
+      if (bannerFiles.length > 0) {
+        payload.bannerMediaDataUrls = useStorageUpload
+          ? await Promise.all(bannerFiles.map((file) => uploadExperienceFileToStorage(file, "banner")))
+          : await Promise.all(bannerFiles.map((file) => fileToDataUrl(file)));
+      }
       if (mp3File) {
-        payload.experienceAudioDataUrl = await fileToDataUrl(mp3File);
+        if (useStorageUpload) {
+          payload.experienceAudioDataUrl = await uploadExperienceFileToStorage(mp3File, "audio");
+        } else {
+          payload.experienceAudioDataUrl = await fileToDataUrl(mp3File);
+        }
       }
 
       await apiRequest("/api/site-settings", {
@@ -1698,6 +1716,32 @@ function fileToDataUrl(file) {
   });
 }
 
+function sanitizeFileName(name) {
+  return String(name || "file")
+    .toLowerCase()
+    .replace(/[^a-z0-9.\-_]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "") || "file";
+}
+
+async function uploadExperienceFileToStorage(file, folder) {
+  requireSupabase();
+  const bucket = SUPABASE_MEDIA_BUCKET;
+  if (!bucket) throw makeApiError(500, "Supabase media bucket is not configured.");
+
+  const extension = sanitizeFileName(file.name || "upload");
+  const path = `${String(folder || "experience")}/${Date.now()}-${Math.random().toString(16).slice(2)}-${extension}`;
+  const { error: uploadError } = await supabaseClient.storage
+    .from(bucket)
+    .upload(path, file, { upsert: true, contentType: file.type || undefined });
+
+  if (uploadError) throw makeApiError(500, uploadError.message || "Failed to upload media.");
+
+  const { data } = supabaseClient.storage.from(bucket).getPublicUrl(path);
+  if (!data?.publicUrl) throw makeApiError(500, "Failed to generate public URL.");
+  return data.publicUrl;
+}
+
 function formatUsd(value) {
   const amount = Number(value);
   if (Number.isNaN(amount)) return "$0.00";
@@ -1799,13 +1843,20 @@ async function saveSiteSettingsData(settingsData) {
   if (error) throw makeApiError(500, error.message || "Failed to save site settings.");
 }
 
-async function assertSupabaseAdmin(headers = {}) {
-  const passcode = String(headers["x-admin-passcode"] || "").trim();
-  const settings = await fetchSiteSettingsData();
-  const expected = String(settings.adminPasscode || "change-this-passcode").trim();
-  if (!passcode || passcode !== expected) {
-    throw makeApiError(401, "Unauthorized.");
-  }
+async function assertSupabaseAdmin() {
+  requireSupabase();
+  const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+  if (sessionError) throw makeApiError(500, sessionError.message || "Failed to read session.");
+  const userId = sessionData?.session?.user?.id || "";
+  if (!userId) throw makeApiError(401, "Unauthorized.");
+
+  const { data: adminRow, error: adminError } = await supabaseClient
+    .from("app_admin_users")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (adminError) throw makeApiError(500, adminError.message || "Failed to verify admin access.");
+  if (!adminRow) throw makeApiError(403, "Admin access required.");
 }
 
 function materializeRow(row) {
@@ -1865,9 +1916,22 @@ async function supabaseApiRequest(path, options = {}) {
 
   if (path === "/api/admin/login" && method === "POST") {
     const passcode = String(body.passcode || "").trim();
-    const settings = await fetchSiteSettingsData();
-    const expected = String(settings.adminPasscode || "change-this-passcode").trim();
-    if (!passcode || passcode !== expected) throw makeApiError(401, "Wrong passcode.");
+    if (!SUPABASE_ADMIN_EMAIL) {
+      throw makeApiError(500, "SUPABASE_ADMIN_EMAIL is not configured.");
+    }
+    if (!passcode) throw makeApiError(401, "Wrong passcode.");
+    const { error: loginError } = await supabaseClient.auth.signInWithPassword({
+      email: SUPABASE_ADMIN_EMAIL,
+      password: passcode,
+    });
+    if (loginError) throw makeApiError(401, "Wrong passcode.");
+    await assertSupabaseAdmin();
+    return { ok: true };
+  }
+
+  if (path === "/api/admin/logout" && method === "POST") {
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) throw makeApiError(500, error.message || "Logout failed.");
     return { ok: true };
   }
 
@@ -1883,7 +1947,7 @@ async function supabaseApiRequest(path, options = {}) {
   }
 
   if (path === "/api/site-settings" && method === "POST") {
-    await assertSupabaseAdmin(headers);
+    await assertSupabaseAdmin();
     const current = await fetchSiteSettingsData();
     const next = { ...current };
     if (body.landingGifDataUrl !== undefined) next.landingGifDataUrl = String(body.landingGifDataUrl || "");
@@ -1910,7 +1974,7 @@ async function supabaseApiRequest(path, options = {}) {
   }
 
   if (path === "/api/products" && method === "POST") {
-    await assertSupabaseAdmin(headers);
+    await assertSupabaseAdmin();
     const existing = await loadAllProductsFromSupabase();
     const now = new Date().toISOString();
     const product = {
@@ -1947,7 +2011,7 @@ async function supabaseApiRequest(path, options = {}) {
   }
 
   if ((path === "/api/products/update" && method === "POST") || (productIdFromPath(path) && method === "PUT")) {
-    await assertSupabaseAdmin(headers);
+    await assertSupabaseAdmin();
     const productId = path === "/api/products/update" ? String(body.id || "") : productIdFromPath(path);
     if (!productId) throw makeApiError(400, "Missing product id.");
     const { data: row, error: loadError } = await supabaseClient
@@ -1979,7 +2043,7 @@ async function supabaseApiRequest(path, options = {}) {
   }
 
   if (path === "/api/portfolio" && method === "POST") {
-    await assertSupabaseAdmin(headers);
+    await assertSupabaseAdmin();
     const now = new Date().toISOString();
     const project = {
       id: randomId(),
@@ -1998,7 +2062,7 @@ async function supabaseApiRequest(path, options = {}) {
   }
 
   if ((path === "/api/portfolio/update" && method === "POST") || (portfolioIdFromPath(path) && method === "PUT")) {
-    await assertSupabaseAdmin(headers);
+    await assertSupabaseAdmin();
     const projectId = path === "/api/portfolio/update" ? String(body.id || "") : portfolioIdFromPath(path);
     if (!projectId) throw makeApiError(400, "Missing project id.");
     const { data: row, error: loadError } = await supabaseClient
