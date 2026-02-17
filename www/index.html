@@ -290,6 +290,13 @@
               <button id="detailEditBtn" type="button" class="menu-btn" hidden>Edit</button>
               <button id="detailAddToCartBtn" type="button" class="menu-btn">Add to Cart</button>
               <button id="detailBuyBtn" type="button" class="buy-btn">Buy</button>
+              <div id="detailStripeBuyWrap" hidden>
+                <stripe-buy-button
+                  buy-button-id="buy_btn_1T1cFVB0RzcCmtC4cGOatQii"
+                  publishable-key="pk_test_51T10nuB0RzcCmtC4RbcvxbL7Zxm3RG0KkCexx8EdFZSBznTi3hYG7bPVRs0zMCM9h8VkqdsKAvGaAZq5kLMsPmBJ00ASxDRUG9"
+                >
+                </stripe-buy-button>
+              </div>
             </div>
           </div>
         </article>
@@ -334,6 +341,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script async src="https://js.stripe.com/v3/buy-button.js"></script>
     <script src="/api/runtime-config.js"></script>
     <script>
       window.SUPABASE_URL = window.SUPABASE_URL || "";

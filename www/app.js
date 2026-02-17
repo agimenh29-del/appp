@@ -100,6 +100,7 @@ const detailSizeSelect = document.getElementById("detailSizeSelect");
 const detailSizeHint = document.getElementById("detailSizeHint");
 const detailPrice = document.getElementById("detailPrice");
 const detailBuyBtn = document.getElementById("detailBuyBtn");
+const detailStripeBuyWrap = document.getElementById("detailStripeBuyWrap");
 const detailEditBtn = document.getElementById("detailEditBtn");
 const detailAddToCartBtn = document.getElementById("detailAddToCartBtn");
 
@@ -891,6 +892,7 @@ function openDetail(itemId) {
   const live = isLiveProduct(item);
   if (detailBuyBtn) detailBuyBtn.hidden = !live;
   if (detailAddToCartBtn) detailAddToCartBtn.hidden = !live;
+  if (detailStripeBuyWrap) detailStripeBuyWrap.hidden = !live;
   syncDetailSizeUi(item);
   if (detailViewer) detailViewer.hidden = false;
   if (detailPortfolioMediaGrid) detailPortfolioMediaGrid.hidden = true;
@@ -915,6 +917,7 @@ function openPortfolioDetail(projectId) {
   if (detailEditBtn) detailEditBtn.hidden = !isAdmin;
   if (detailBuyBtn) detailBuyBtn.hidden = true;
   if (detailAddToCartBtn) detailAddToCartBtn.hidden = true;
+  if (detailStripeBuyWrap) detailStripeBuyWrap.hidden = true;
   if (detailSizeRow) detailSizeRow.hidden = true;
   if (detailViewer) detailViewer.hidden = false;
   if (detailPortfolioMediaGrid) detailPortfolioMediaGrid.hidden = false;
