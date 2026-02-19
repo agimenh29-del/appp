@@ -43,6 +43,7 @@ const uploadPanelTitle = document.getElementById("uploadPanelTitle");
 const uploadForm = document.getElementById("uploadForm");
 const uploadStatus = document.getElementById("uploadStatus");
 const uploadSubmitBtn = document.getElementById("uploadSubmitBtn");
+const uploadAutoArchiveBtn = document.getElementById("uploadAutoArchiveBtn");
 const uploadCancelEditBtn = document.getElementById("uploadCancelEditBtn");
 const titleInput = document.getElementById("titleInput");
 const descriptionInput = document.getElementById("descriptionInput");
@@ -65,7 +66,6 @@ const addVariantBtn = document.getElementById("addVariantBtn");
 const mediaInput = document.getElementById("mediaInput");
 const experienceForm = document.getElementById("experienceForm");
 const landingGifInput = document.getElementById("landingGifInput");
-const bannerGifInput = document.getElementById("bannerGifInput");
 const experienceMp3Input = document.getElementById("experienceMp3Input");
 const experienceStatus = document.getElementById("experienceStatus");
 const portfolioForm = document.getElementById("portfolioForm");
@@ -280,21 +280,15 @@ if (experienceForm) {
     }
 
     const gifFile = landingGifInput?.files?.[0] || null;
-    const bannerFiles = Array.from(bannerGifInput?.files || []).filter((file) => file.size > 0);
     const mp3File = experienceMp3Input?.files?.[0] || null;
 
-    if (!gifFile && bannerFiles.length === 0 && !mp3File) {
+    if (!gifFile && !mp3File) {
       setExperienceStatus("Choose at least one file.");
       return;
     }
 
     if (gifFile && gifFile.type !== "image/gif") {
       setExperienceStatus("Landing file must be a GIF.");
-      return;
-    }
-
-    if (bannerFiles.some((file) => !String(file.type || "").startsWith("image/"))) {
-      setExperienceStatus("Banner files must be images.");
       return;
     }
 
@@ -314,11 +308,6 @@ if (experienceForm) {
         } else {
           payload.landingGifDataUrl = await fileToDataUrl(gifFile);
         }
-      }
-      if (bannerFiles.length > 0) {
-        payload.bannerMediaDataUrls = useStorageUpload
-          ? await Promise.all(bannerFiles.map((file) => uploadExperienceFileToStorage(file, "banner")))
-          : await Promise.all(bannerFiles.map((file) => fileToDataUrl(file)));
       }
       if (mp3File) {
         if (useStorageUpload) {
@@ -422,6 +411,9 @@ if (portfolioCancelEditBtn) {
 if (uploadForm) {
   uploadForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const submitter = event.submitter;
+    const submitterId = submitter && submitter.id ? String(submitter.id) : "";
+    const isAutoArchiveBatch = submitterId === "uploadAutoArchiveBtn";
 
     if (!isAdmin) {
       setUploadStatus("Admin login required.");
@@ -453,6 +445,90 @@ if (uploadForm) {
     const archiveYear = Number(formData.get("archiveYear"));
     const variations = readVariationsFromForm();
     const files = getChosenFiles(formData);
+
+    if (isAutoArchiveBatch) {
+      if (editingProductId) {
+        setUploadStatus("Auto batch mode is only for new uploads.");
+        return;
+      }
+      if (files.length === 0) {
+        setUploadStatus("Add at least one media file for auto batch upload.");
+        return;
+      }
+      if (files.length > 0 && !files.every(isSupportedMediaFile)) {
+        setUploadStatus("Only image/video files are supported.");
+        return;
+      }
+      if (Number.isNaN(price)) {
+        setUploadStatus("Price is required for auto batch upload.");
+        return;
+      }
+
+      try {
+        const fallbackAvx = {
+          avxColor,
+          avxItem,
+          avxSize,
+          avxSeason,
+          avxYear,
+        };
+        const defaultYearFull = Number.isInteger(Number(year))
+          ? Number(year)
+          : (2000 + (normalizeTwoDigitYear(avxYear) ?? (new Date().getFullYear() % 100)));
+        const defaultDescription = description;
+        const defaultDetails = details;
+
+        for (let index = 0; index < files.length; index += 1) {
+          const file = files[index];
+          setUploadStatus(`Auto-uploading ${index + 1}/${files.length}...`);
+
+          const inferred = inferAvxFromFilename(file.name, fallbackAvx);
+          const generatedAvxId = generateAvxId(inferred);
+          if (!generatedAvxId) {
+            throw new Error(`Could not generate AVX ID for ${file.name}.`);
+          }
+
+          const archiveSeasonForItem = String(inferred.avxSeason || "fw").toUpperCase() === "SS" ? "SS" : "FW";
+          const archiveYearForItem = 2000 + (normalizeTwoDigitYear(inferred.avxYear) ?? (defaultYearFull % 100));
+          const displayLabel = buildAutoLabelFromFileName(file.name);
+          const itemName = name || `${generatedAvxId} ${displayLabel}`.trim();
+          const itemDescription = defaultDescription || `${generatedAvxId} archive listing.`;
+          const itemDetails = defaultDetails || `Auto-indexed from file ${file.name}.`;
+          const mediaDataUrl = await fileToDataUrl(file);
+
+          await apiRequest("/api/products", {
+            method: "POST",
+            headers: { "x-admin-passcode": adminPasscode },
+            body: JSON.stringify({
+              name: itemName,
+              description: itemDescription,
+              details: itemDetails,
+              year: String(archiveYearForItem || defaultYearFull),
+              price,
+              buyUrl,
+              status: "archive",
+              avxColor: inferred.avxColor,
+              avxItem: inferred.avxItem,
+              avxSize: inferred.avxSize,
+              avxSeason: inferred.avxSeason,
+              avxYear: inferred.avxYear,
+              avxId: generatedAvxId,
+              archiveSeason: archiveSeasonForItem,
+              archiveYear: archiveYearForItem,
+              variations,
+              media: [{ type: file.type, dataUrl: mediaDataUrl }],
+            }),
+          });
+        }
+
+        await loadData();
+        resetEditMode();
+        setUploadStatus(`Auto batch upload complete. ${files.length} archived listings indexed.`);
+      } catch (error) {
+        setUploadStatus(error.message || "Auto batch upload failed.");
+      }
+      return;
+    }
 
     if (!name || !description || !details || !year || Number.isNaN(price)) {
       setUploadStatus("Fill all required fields.");
@@ -649,18 +725,6 @@ function renderHeroCarousel(errorMessage = "") {
     fallback.className = "hero-item";
     fallback.innerHTML = `<p class="meta" style="padding:10px;">${escapeHtml(errorMessage)}</p>`;
     heroTrack.appendChild(fallback);
-    return;
-  }
-
-  const bannerMedia = getBannerMediaSources();
-  if (bannerMedia.length > 0) {
-    const looped = bannerMedia.concat(bannerMedia);
-    for (const src of looped) {
-      const banner = document.createElement("article");
-      banner.className = "hero-item hero-item-banner";
-      banner.innerHTML = `<img src="${escapeAttr(src)}" alt="Banner" loading="eager" />`;
-      heroTrack.appendChild(banner);
-    }
     return;
   }
 
@@ -1615,6 +1679,82 @@ function generateAvxId(input) {
   return `${color.toUpperCase()}${item.toUpperCase()}${size}${season.toUpperCase()}${String(year).padStart(2, "0")}`;
 }
 
+function buildAutoLabelFromFileName(fileName) {
+  const base = String(fileName || "")
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[_-]+/g, " ")
+    .trim();
+  return base || "Untitled";
+}
+
+function inferAvxFromFilename(fileName, fallback) {
+  const tokens = String(fileName || "")
+    .toLowerCase()
+    .replace(/\.[^/.]+$/, "")
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+
+  const findMapped = (mapping, fallbackValue) => {
+    for (const [target, aliases] of Object.entries(mapping)) {
+      if (aliases.some((alias) => tokens.includes(alias))) return target;
+    }
+    return fallbackValue;
+  };
+
+  const color = findMapped({
+    blk: ["blk", "black"],
+    wht: ["wht", "white"],
+    grn: ["grn", "green"],
+    gry: ["gry", "gray", "grey"],
+    pnk: ["pnk", "pink"],
+  }, String(fallback.avxColor || "blk").toLowerCase());
+
+  const item = findMapped({
+    ts: ["ts", "tee", "tshirt", "shirt"],
+    hd: ["hd", "hoodie"],
+    sw: ["sw", "sweatshirt", "crewneck"],
+    sp: ["sp", "short", "shorts"],
+    trkp: ["trkp", "trackpant", "trackpants", "track"],
+  }, String(fallback.avxItem || "ts").toLowerCase());
+
+  const size = findMapped({
+    XL: ["xl"],
+    L: ["l"],
+    M: ["m"],
+    S: ["s"],
+  }, String(fallback.avxSize || "M").toUpperCase());
+
+  const season = tokens.includes("ss")
+    ? "ss"
+    : (tokens.includes("fw") ? "fw" : String(fallback.avxSeason || "fw").toLowerCase());
+
+  let year = normalizeTwoDigitYear(fallback.avxYear);
+  for (const token of tokens) {
+    if (/^\d{4}$/.test(token)) {
+      const full = Number(token);
+      if (full >= 2000 && full <= 2099) {
+        year = full % 100;
+        break;
+      }
+    }
+    if (/^\d{2}$/.test(token)) {
+      const short = Number(token);
+      if (short >= 0 && short <= 99) {
+        year = short;
+        break;
+      }
+    }
+  }
+
+  return {
+    avxColor: color,
+    avxItem: item,
+    avxSize: size,
+    avxSeason: season,
+    avxYear: year ?? (new Date().getFullYear() % 100),
+  };
+}
+
 function addVariantRow(size = "", quantity = 0) {
   if (!variantRows) return;
 
@@ -1942,8 +2082,6 @@ async function supabaseApiRequest(path, options = {}) {
     const settings = await fetchSiteSettingsData();
     return {
       landingGifDataUrl: String(settings.landingGifDataUrl || ""),
-      bannerMediaDataUrls: Array.isArray(settings.bannerMediaDataUrls) ? settings.bannerMediaDataUrls : [],
-      bannerGifDataUrl: String(settings.bannerGifDataUrl || ""),
       experienceAudioDataUrl: String(settings.experienceAudioDataUrl || ""),
       updatedAt: settings.updatedAt || null,
     };
@@ -1954,19 +2092,11 @@ async function supabaseApiRequest(path, options = {}) {
     const current = await fetchSiteSettingsData();
     const next = { ...current };
     if (body.landingGifDataUrl !== undefined) next.landingGifDataUrl = String(body.landingGifDataUrl || "");
-    if (body.bannerGifDataUrl !== undefined) next.bannerGifDataUrl = String(body.bannerGifDataUrl || "");
-    if (body.bannerMediaDataUrls !== undefined) {
-      if (!Array.isArray(body.bannerMediaDataUrls)) throw makeApiError(400, "Banner media must be an array.");
-      next.bannerMediaDataUrls = body.bannerMediaDataUrls.map((value) => String(value || "")).filter(Boolean);
-      next.bannerGifDataUrl = next.bannerMediaDataUrls[0] || next.bannerGifDataUrl || "";
-    }
     if (body.experienceAudioDataUrl !== undefined) next.experienceAudioDataUrl = String(body.experienceAudioDataUrl || "");
     next.updatedAt = new Date().toISOString();
     await saveSiteSettingsData(next);
     return {
       landingGifDataUrl: String(next.landingGifDataUrl || ""),
-      bannerMediaDataUrls: Array.isArray(next.bannerMediaDataUrls) ? next.bannerMediaDataUrls : [],
-      bannerGifDataUrl: String(next.bannerGifDataUrl || ""),
       experienceAudioDataUrl: String(next.experienceAudioDataUrl || ""),
       updatedAt: next.updatedAt,
     };
@@ -2285,30 +2415,6 @@ function applySiteSettings() {
   }
   tryPlayExperienceAudio();
   renderHeroCarousel();
-}
-
-function getBannerMediaSources() {
-  const direct = Array.isArray(siteSettings?.bannerMediaDataUrls)
-    ? siteSettings.bannerMediaDataUrls
-    : [];
-  const normalizedDirect = direct
-    .map((value) => String(value || "").trim())
-    .filter((value) => (
-      value.startsWith("data:image/")
-      || value.startsWith("http://")
-      || value.startsWith("https://")
-      || value.startsWith("/")
-    ));
-  if (normalizedDirect.length > 0) return normalizedDirect;
-
-  const legacy = String(siteSettings?.bannerGifDataUrl || "").trim();
-  if (
-    legacy.startsWith("data:image/")
-    || legacy.startsWith("http://")
-    || legacy.startsWith("https://")
-    || legacy.startsWith("/")
-  ) return [legacy];
-  return [];
 }
 
 function getFallbackLandingGif() {

@@ -1,5 +1,9 @@
 node_modules/
 .DS_Store
+.next/
+out/
+.env.local
+.env
 
 # Local runtime data
 data/*.json

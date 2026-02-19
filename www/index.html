@@ -156,8 +156,10 @@
           </label>
           <div class="upload-actions">
             <button id="uploadSubmitBtn" type="submit">Publish</button>
+            <button id="uploadAutoArchiveBtn" type="submit" class="menu-btn" formnovalidate>Auto Archive Batch Upload</button>
             <button id="uploadCancelEditBtn" type="button" class="menu-btn" hidden>Cancel Edit</button>
           </div>
+          <p class="meta">Auto Archive Batch Upload: one listing per uploaded file, AVX ID generated from filename + AVX defaults.</p>
           <p id="uploadStatus" class="meta"></p>
         </form>
         <hr />
@@ -166,10 +168,6 @@
           <label>
             Landing GIF
             <input id="landingGifInput" type="file" accept="image/gif" />
-          </label>
-          <label>
-            Banner Images (multiple)
-            <input id="bannerGifInput" type="file" accept="image/*" multiple />
           </label>
           <label>
             Experience MP3
