@@ -71,6 +71,15 @@ function formatMoney(amount: string, currencyCode: string): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: currencyCode || "USD" }).format(n);
 }
 
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Failed to read file."));
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function ClientApp() {
   useEffect(() => {
     const productGrid = document.getElementById("products");
@@ -88,6 +97,12 @@ export default function ClientApp() {
     const adminPasscodeInput = document.getElementById("adminPasscodeInput") as HTMLInputElement | null;
     const adminStatus = document.getElementById("adminStatus");
     const adminCancelBtn = document.getElementById("adminCancelBtn") as HTMLButtonElement | null;
+    const portfolioForm = document.getElementById("portfolioForm") as HTMLFormElement | null;
+    const portfolioTitleInput = document.getElementById("portfolioTitleInput") as HTMLInputElement | null;
+    const portfolioDescriptionInput = document.getElementById("portfolioDescriptionInput") as HTMLTextAreaElement | null;
+    const portfolioDetailsInput = document.getElementById("portfolioDetailsInput") as HTMLTextAreaElement | null;
+    const portfolioFolderInput = document.getElementById("portfolioFolderInput") as HTMLInputElement | null;
+    const portfolioStatus = document.getElementById("portfolioStatus");
 
     const detailDialog = document.getElementById("detailDialog") as HTMLDialogElement | null;
     const detailCloseBtn = document.getElementById("detailCloseBtn") as HTMLButtonElement | null;
@@ -174,6 +189,65 @@ export default function ClientApp() {
     uploadToggleBtn?.addEventListener("click", () => {
       if (!uploadPage) return;
       uploadPage.hidden = !uploadPage.hidden;
+      if (!uploadPage.hidden) uploadPage.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    portfolioForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!isAdmin) {
+        if (portfolioStatus) portfolioStatus.textContent = "Admin login required.";
+        return;
+      }
+
+      const passcode = String(adminPasscodeInput?.value || "").trim();
+      if (!passcode) {
+        if (portfolioStatus) portfolioStatus.textContent = "Log in again before uploading.";
+        return;
+      }
+
+      const title = String(portfolioTitleInput?.value || "").trim();
+      const description = String(portfolioDescriptionInput?.value || "").trim();
+      const details = String(portfolioDetailsInput?.value || "").trim();
+      const files = Array.from(portfolioFolderInput?.files || []).filter((file) => file.size > 0);
+
+      if (!title || !description) {
+        if (portfolioStatus) portfolioStatus.textContent = "Title and description are required.";
+        return;
+      }
+      if (files.length === 0) {
+        if (portfolioStatus) portfolioStatus.textContent = "Add at least one media file.";
+        return;
+      }
+
+      try {
+        if (portfolioStatus) portfolioStatus.textContent = "Uploading...";
+        const media = await Promise.all(files.map(async (file) => ({
+          type: file.type,
+          dataUrl: await fileToDataUrl(file),
+          name: file.name,
+        })));
+
+        const response = await fetch("/api/portfolio", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-admin-passcode": passcode,
+          },
+          body: JSON.stringify({ title, description, details, media }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload?.error || `Request failed (${response.status})`);
+        }
+
+        portfolioForm.reset();
+        if (portfolioStatus) portfolioStatus.textContent = "Portfolio project published.";
+        await loadPortfolio();
+      } catch (error) {
+        if (portfolioStatus) {
+          portfolioStatus.textContent = error instanceof Error ? error.message : "Portfolio upload failed.";
+        }
+      }
     });
 
     function getSelectedVariant(detail: ProductDetail): ProductDetail["variants"][number] | null {

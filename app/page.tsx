@@ -11,7 +11,7 @@ export default function Page() {
             <a href="#about">About</a>
             <a href="https://www.instagram.com" target="_blank" rel="noreferrer">Instagram</a>
           </nav>
-          <a className="email" href="mailto:ajimenezh29@yahoo.com">ajimenezh29@yahoo.com</a>
+          <a className="email" href="mailto:info@aveli.us">info@aveli.us</a>
         </div>
 
         <div className="top-right">
@@ -36,15 +36,44 @@ export default function Page() {
         <a href="#portfolio">Portfolio</a>
         <a href="#about">About</a>
         <a href="https://www.instagram.com" target="_blank" rel="noreferrer">Instagram</a>
-        <a href="mailto:ajimenezh29@yahoo.com">ajimenezh29@yahoo.com</a>
+        <a href="mailto:info@aveli.us">info@aveli.us</a>
       </nav>
 
       <main>
         <section id="uploadPage" className="upload-panel" hidden>
           <h2>Admin Dashboard</h2>
-          <p className="meta">Admin controls are enabled. Shopify products are managed in Shopify admin. Portfolio data is loaded from Supabase/file fallback.</p>
+          <p className="meta">Shopify products are managed in Shopify admin.</p>
+          <hr />
+          <h2>Portfolio Upload</h2>
+          <form id="portfolioForm" className="upload-form">
+            <label>
+              Project title
+              <input id="portfolioTitleInput" type="text" maxLength={120} required />
+            </label>
+            <label>
+              Description
+              <textarea id="portfolioDescriptionInput" rows={3} maxLength={300} required></textarea>
+            </label>
+            <label>
+              Full details
+              <textarea id="portfolioDetailsInput" rows={5} maxLength={2400}></textarea>
+            </label>
+            <label>
+              Project media (multiple)
+              <input
+                id="portfolioFolderInput"
+                type="file"
+                accept="image/*,video/*,audio/*"
+                multiple
+                required
+              />
+            </label>
+            <div className="upload-actions">
+              <button id="portfolioSubmitBtn" type="submit">Publish Portfolio Project</button>
+            </div>
+            <p id="portfolioStatus" className="meta"></p>
+          </form>
         </section>
-        <h1># SUPPLY 10</h1>
         <section aria-label="Live products">
           <h2>Live</h2>
           <section id="products" className="product-grid" aria-label="Recent Work"></section>
@@ -119,7 +148,7 @@ export default function Page() {
           <a href="#">About</a>
           <a href="https://www.instagram.com" target="_blank" rel="noreferrer">Instagram</a>
         </div>
-        <a className="email" href="mailto:ajimenezh29@yahoo.com">ajimenezh29@yahoo.com</a>
+        <a className="email" href="mailto:info@aveli.us">info@aveli.us</a>
 
         <div className="legal-links">
           <a href="#">Imprint</a>
@@ -129,7 +158,7 @@ export default function Page() {
 
         <p className="meta">Shopping from United States.</p>
         <button className="currency" type="button">Change Currency</button>
-        <p className="meta">&copy; YOUR NAME, <span id="year"></span></p>
+        <p className="meta">&copy; AVELI, <span id="year"></span></p>
       </footer>
 
       <ClientApp />
