@@ -24,6 +24,14 @@ type ProductDetail = {
   }>;
 };
 
+type PortfolioProject = {
+  id?: string;
+  title: string;
+  description?: string;
+  details?: string;
+  media?: Array<{ dataUrl?: string; type?: string; name?: string }>;
+};
+
 type CartLine = {
   id: string;
   quantity: number;
@@ -43,6 +51,7 @@ type Cart = {
 };
 
 const CART_ID_KEY = "shopify_cart_id_v1";
+const ADMIN_SESSION_KEY = "portfolio_admin_session_v2";
 
 async function postJson<T>(url: string, body?: Record<string, unknown>): Promise<T> {
   const res = await fetch(url, {
@@ -65,10 +74,20 @@ function formatMoney(amount: string, currencyCode: string): string {
 export default function ClientApp() {
   useEffect(() => {
     const productGrid = document.getElementById("products");
+    const portfolioGrid = document.getElementById("portfolioGrid");
     const yearEl = document.getElementById("year");
     const menuBtn = document.getElementById("menuBtn") as HTMLButtonElement | null;
     const mobileNav = document.getElementById("mobileNav");
     const bagBtn = document.getElementById("bagBtn");
+    const adminLoginBtn = document.getElementById("adminLoginBtn") as HTMLButtonElement | null;
+    const adminLogoutBtn = document.getElementById("adminLogoutBtn") as HTMLButtonElement | null;
+    const uploadToggleBtn = document.getElementById("uploadToggleBtn") as HTMLButtonElement | null;
+    const uploadPage = document.getElementById("uploadPage");
+    const adminDialog = document.getElementById("adminDialog") as HTMLDialogElement | null;
+    const adminForm = document.getElementById("adminForm") as HTMLFormElement | null;
+    const adminPasscodeInput = document.getElementById("adminPasscodeInput") as HTMLInputElement | null;
+    const adminStatus = document.getElementById("adminStatus");
+    const adminCancelBtn = document.getElementById("adminCancelBtn") as HTMLButtonElement | null;
 
     const detailDialog = document.getElementById("detailDialog") as HTMLDialogElement | null;
     const detailCloseBtn = document.getElementById("detailCloseBtn") as HTMLButtonElement | null;
@@ -94,9 +113,12 @@ export default function ClientApp() {
     const cartStatus = document.getElementById("cartStatus");
 
     let products: ProductCard[] = [];
+    let portfolioProjects: PortfolioProject[] = [];
     let activeDetail: ProductDetail | null = null;
+    let activePortfolio: PortfolioProject | null = null;
     let activeMediaIndex = 0;
     let cart: Cart | null = null;
+    let isAdmin = localStorage.getItem(ADMIN_SESSION_KEY) === "1";
 
     if (yearEl) yearEl.textContent = String(new Date().getFullYear());
 
@@ -106,6 +128,53 @@ export default function ClientApp() {
         menuBtn.setAttribute("aria-expanded", String(open));
       });
     }
+
+    function updateAdminUi() {
+      if (adminLoginBtn) adminLoginBtn.hidden = isAdmin;
+      if (adminLogoutBtn) adminLogoutBtn.hidden = !isAdmin;
+      if (uploadToggleBtn) uploadToggleBtn.hidden = !isAdmin;
+      if (uploadPage && !isAdmin) uploadPage.hidden = true;
+    }
+
+    updateAdminUi();
+
+    adminLoginBtn?.addEventListener("click", () => {
+      if (adminStatus) adminStatus.textContent = "";
+      if (adminPasscodeInput) adminPasscodeInput.value = "";
+      adminDialog?.showModal();
+      adminPasscodeInput?.focus();
+    });
+
+    adminCancelBtn?.addEventListener("click", () => adminDialog?.close());
+
+    adminForm?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const passcode = String(adminPasscodeInput?.value || "").trim();
+      const expected = String(process.env.NEXT_PUBLIC_ADMIN_PASSCODE || "").trim();
+      if (!passcode) {
+        if (adminStatus) adminStatus.textContent = "Passcode required.";
+        return;
+      }
+      if (!expected || passcode !== expected) {
+        if (adminStatus) adminStatus.textContent = "Wrong passcode.";
+        return;
+      }
+      isAdmin = true;
+      localStorage.setItem(ADMIN_SESSION_KEY, "1");
+      updateAdminUi();
+      adminDialog?.close();
+    });
+
+    adminLogoutBtn?.addEventListener("click", () => {
+      isAdmin = false;
+      localStorage.removeItem(ADMIN_SESSION_KEY);
+      updateAdminUi();
+    });
+
+    uploadToggleBtn?.addEventListener("click", () => {
+      if (!uploadPage) return;
+      uploadPage.hidden = !uploadPage.hidden;
+    });
 
     function getSelectedVariant(detail: ProductDetail): ProductDetail["variants"][number] | null {
       if (detail.variants.length === 0) return null;
@@ -220,7 +289,24 @@ export default function ClientApp() {
     }
 
     function renderDetailMedia() {
-      if (!activeDetail || !detailMediaFrame) return;
+      if (!detailMediaFrame) return;
+      if (activePortfolio) {
+        const media = activePortfolio.media?.[activeMediaIndex];
+        const src = String(media?.dataUrl || "");
+        if (!src) {
+          detailMediaFrame.innerHTML = "";
+        } else if (String(media?.type || "").startsWith("video/")) {
+          detailMediaFrame.innerHTML = `<video src="${src}" controls playsinline></video>`;
+        } else {
+          detailMediaFrame.innerHTML = `<img src="${src}" alt="${activePortfolio.title || "Portfolio media"}" />`;
+        }
+        const total = Array.isArray(activePortfolio.media) ? activePortfolio.media.length : 0;
+        const disableNav = total < 2;
+        if (detailPrevBtn) detailPrevBtn.disabled = disableNav;
+        if (detailNextBtn) detailNextBtn.disabled = disableNav;
+        return;
+      }
+      if (!activeDetail) return;
       const media = activeDetail.images[activeMediaIndex];
       if (!media) {
         detailMediaFrame.innerHTML = "";
@@ -255,6 +341,7 @@ export default function ClientApp() {
     }
 
     async function openDetail(handle: string) {
+      activePortfolio = null;
       const result = await postJson<{ product: ProductDetail }>("/api/shopify/product", { handle });
       activeDetail = result.product;
       activeMediaIndex = 0;
@@ -264,8 +351,27 @@ export default function ClientApp() {
       if (detailDescription) detailDescription.textContent = activeDetail.description || "";
       const variant = getSelectedVariant(activeDetail);
       if (detailPrice) detailPrice.textContent = variant ? formatMoney(variant.price.amount, variant.price.currencyCode) : "";
+      if (detailAddToCartBtn) detailAddToCartBtn.hidden = false;
+      if (detailBuyBtn) detailBuyBtn.hidden = false;
+      if (detailSizeRow) detailSizeRow.hidden = false;
 
       renderDetailVariantOptions(activeDetail);
+      renderDetailMedia();
+      detailDialog?.showModal();
+    }
+
+    function openPortfolioDetail(project: PortfolioProject) {
+      activeDetail = null;
+      activePortfolio = project;
+      activeMediaIndex = 0;
+      if (detailTitle) detailTitle.textContent = project.title || "Portfolio Project";
+      const total = Array.isArray(project.media) ? project.media.length : 0;
+      if (detailMeta) detailMeta.textContent = `${total} media item${total === 1 ? "" : "s"}`;
+      if (detailDescription) detailDescription.textContent = project.description || "";
+      if (detailPrice) detailPrice.textContent = "";
+      if (detailSizeRow) detailSizeRow.hidden = true;
+      if (detailAddToCartBtn) detailAddToCartBtn.hidden = true;
+      if (detailBuyBtn) detailBuyBtn.hidden = true;
       renderDetailMedia();
       detailDialog?.showModal();
     }
@@ -332,10 +438,56 @@ export default function ClientApp() {
       }
     }
 
+    function renderPortfolio() {
+      if (!portfolioGrid) return;
+      portfolioGrid.innerHTML = "";
+      if (portfolioProjects.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "meta";
+        empty.textContent = "No portfolio projects yet.";
+        portfolioGrid.appendChild(empty);
+        return;
+      }
+
+      for (const project of portfolioProjects) {
+        const firstMedia = project.media && project.media[0] ? project.media[0] : null;
+        let mediaHtml = "";
+        if (firstMedia?.dataUrl) {
+          if (String(firstMedia.type || "").startsWith("video/")) {
+            mediaHtml = `<video src="${firstMedia.dataUrl}" muted loop playsinline></video>`;
+          } else {
+            mediaHtml = `<img src="${firstMedia.dataUrl}" alt="${project.title || "Portfolio"}" loading="lazy" />`;
+          }
+        }
+
+        const card = document.createElement("article");
+        card.className = "product-card";
+        card.innerHTML = `
+          <button class="product-link" type="button" aria-label="${project.title || "Portfolio"}">
+            <div class="product-image">${mediaHtml}</div>
+            <p class="product-name">${project.title || "Portfolio Project"}</p>
+          </button>
+        `;
+        const openBtn = card.querySelector(".product-link") as HTMLButtonElement | null;
+        openBtn?.addEventListener("click", () => openPortfolioDetail(project));
+        portfolioGrid.appendChild(card);
+      }
+    }
+
     async function loadProducts() {
       const result = await postJson<{ products: ProductCard[] }>("/api/shopify/products");
       products = result.products;
       renderProducts();
+    }
+
+    async function loadPortfolio() {
+      try {
+        const result = await fetch("/api/portfolio", { cache: "no-store" }).then((res) => res.json());
+        portfolioProjects = Array.isArray(result?.projects) ? result.projects : [];
+      } catch {
+        portfolioProjects = [];
+      }
+      renderPortfolio();
     }
 
     bagBtn?.addEventListener("click", async (event) => {
@@ -349,12 +501,26 @@ export default function ClientApp() {
     detailCloseBtn?.addEventListener("click", () => detailDialog?.close());
 
     detailPrevBtn?.addEventListener("click", () => {
+      if (activePortfolio) {
+        const total = Array.isArray(activePortfolio.media) ? activePortfolio.media.length : 0;
+        if (total < 2) return;
+        activeMediaIndex = (activeMediaIndex - 1 + total) % total;
+        renderDetailMedia();
+        return;
+      }
       if (!activeDetail || activeDetail.images.length < 2) return;
       activeMediaIndex = (activeMediaIndex - 1 + activeDetail.images.length) % activeDetail.images.length;
       renderDetailMedia();
     });
 
     detailNextBtn?.addEventListener("click", () => {
+      if (activePortfolio) {
+        const total = Array.isArray(activePortfolio.media) ? activePortfolio.media.length : 0;
+        if (total < 2) return;
+        activeMediaIndex = (activeMediaIndex + 1) % total;
+        renderDetailMedia();
+        return;
+      }
       if (!activeDetail || activeDetail.images.length < 2) return;
       activeMediaIndex = (activeMediaIndex + 1) % activeDetail.images.length;
       renderDetailMedia();
@@ -397,6 +563,7 @@ export default function ClientApp() {
         productGrid.innerHTML = `<p class="meta">${error instanceof Error ? error.message : "Failed to load products."}</p>`;
       }
     });
+    loadPortfolio();
 
     ensureCart().catch(() => {
       // ignore initial cart failure; user can still browse products

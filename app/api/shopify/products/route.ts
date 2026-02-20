@@ -3,6 +3,16 @@ import { shopifyFetch } from "@/lib/shopify";
 import { PRODUCTS_QUERY } from "@/lib/shopifyQueries";
 
 export async function POST() {
+  const hasConfig = Boolean(
+    process.env.SHOPIFY_STORE_DOMAIN && process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+  );
+  if (!hasConfig) {
+    return NextResponse.json({
+      products: [],
+      warning: "Shopify is not configured yet. Set SHOPIFY_STORE_DOMAIN and SHOPIFY_STOREFRONT_ACCESS_TOKEN.",
+    });
+  }
+
   try {
     const data = await shopifyFetch<{
       products: {

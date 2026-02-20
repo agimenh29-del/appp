@@ -7,6 +7,7 @@ export default function Page() {
         <div className="top-left">
           <nav className="primary-nav" aria-label="Main">
             <a href="#">Home</a>
+            <a href="#portfolio">Portfolio</a>
             <a href="#about">About</a>
             <a href="https://www.instagram.com" target="_blank" rel="noreferrer">Instagram</a>
           </nav>
@@ -14,6 +15,15 @@ export default function Page() {
         </div>
 
         <div className="top-right">
+          <button id="adminLoginBtn" className="menu-btn" type="button">
+            ADMIN
+          </button>
+          <button id="adminLogoutBtn" className="menu-btn" type="button" hidden>
+            LOGOUT
+          </button>
+          <button id="uploadToggleBtn" className="menu-btn" type="button" hidden>
+            UPLOAD
+          </button>
           <button id="menuBtn" className="menu-btn" type="button" aria-expanded="false" aria-controls="mobileNav">
             MENU
           </button>
@@ -23,14 +33,26 @@ export default function Page() {
 
       <nav id="mobileNav" className="mobile-nav" aria-label="Mobile">
         <a href="#">Home</a>
+        <a href="#portfolio">Portfolio</a>
         <a href="#about">About</a>
         <a href="https://www.instagram.com" target="_blank" rel="noreferrer">Instagram</a>
         <a href="mailto:ajimenezh29@yahoo.com">ajimenezh29@yahoo.com</a>
       </nav>
 
       <main>
+        <section id="uploadPage" className="upload-panel" hidden>
+          <h2>Admin Dashboard</h2>
+          <p className="meta">Admin controls are enabled. Shopify products are managed in Shopify admin. Portfolio data is loaded from Supabase/file fallback.</p>
+        </section>
         <h1># SUPPLY 10</h1>
-        <section id="products" className="product-grid" aria-label="Recent Work"></section>
+        <section aria-label="Live products">
+          <h2>Live</h2>
+          <section id="products" className="product-grid" aria-label="Recent Work"></section>
+        </section>
+        <section id="portfolio" aria-label="Portfolio">
+          <h2>Portfolio</h2>
+          <section id="portfolioGrid" className="product-grid" aria-label="Portfolio Projects"></section>
+        </section>
       </main>
 
       <dialog id="detailDialog" className="detail-dialog">
@@ -59,6 +81,21 @@ export default function Page() {
             </div>
           </div>
         </article>
+      </dialog>
+
+      <dialog id="adminDialog" className="admin-dialog">
+        <form id="adminForm" method="dialog" className="admin-form">
+          <h2>Admin Login</h2>
+          <label>
+            Passcode
+            <input id="adminPasscodeInput" type="password" autocomplete="current-password" required />
+          </label>
+          <div className="admin-actions">
+            <button type="submit">Enter</button>
+            <button id="adminCancelBtn" type="button" className="menu-btn">Cancel</button>
+          </div>
+          <p id="adminStatus" className="meta"></p>
+        </form>
       </dialog>
 
       <dialog id="cartDialog" className="cart-dialog">
