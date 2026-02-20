@@ -88,7 +88,7 @@ export default function Page() {
           <h2>Admin Login</h2>
           <label>
             Passcode
-            <input id="adminPasscodeInput" type="password" autocomplete="current-password" required />
+            <input id="adminPasscodeInput" type="password" autoComplete="current-password" required />
           </label>
           <div className="admin-actions">
             <button type="submit">Enter</button>
